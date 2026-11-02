@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FileTaskRepositoryTest {
 
@@ -50,5 +51,37 @@ class FileTaskRepositoryTest {
         Task third = second.save(new Task("Three", Priority.LOW));
 
         assertEquals(3, third.getId());
+    }
+
+    @Test
+    void deletedTask_staysDeletedAfterReload() {
+        FileTaskRepository first = new FileTaskRepository(fileName);
+        Task keep = first.save(new Task("Keep", Priority.LOW));
+        Task remove = first.save(new Task("Remove", Priority.LOW));
+
+        first.deleteById(remove.getId());
+
+        FileTaskRepository second = new FileTaskRepository(fileName);
+        List<Task> loaded = second.findAll();
+
+        assertEquals(1, loaded.size());
+        assertEquals(keep.getId(), loaded.get(0).getId());
+    }
+
+    @Test
+    void missingFile_startsEmpty() {
+        FileTaskRepository repository = new FileTaskRepository(fileName);
+
+        assertTrue(repository.findAll().isEmpty());
+    }
+
+    @Test
+    void titleContainingPipe_survivesReload() {
+        FileTaskRepository first = new FileTaskRepository(fileName);
+        first.save(new Task("Read A|B notes", Priority.LOW));
+
+        FileTaskRepository second = new FileTaskRepository(fileName);
+
+        assertEquals("Read A|B notes", second.findAll().get(0).getTitle());
     }
 }
